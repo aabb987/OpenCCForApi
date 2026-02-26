@@ -1,0 +1,157 @@
+給「其他專案（單一 index.js 腳本）」的使用手冊
+==============================================
+
+目標
+----
+讓其他專案透過 `import`（必要時搭配 `fetch` 字典）就能使用繁簡轉換。
+
+
+一、安裝與執行前提
+------------------
+1) 安裝套件
+
+	 npm install opencc
+
+2) 若 `index.js` 要用 ESM 語法（`import`），請在 `package.json` 設定：
+
+	 {
+		 "type": "module"
+	 }
+
+
+二、網站功能對應（重點）
+------------------------
+OpenCC 網站可見的主要功能，可在專案中用這兩種方式實現：
+
+1) 輕量快速（純 JS）：`opencc/web`
+	 - 適合：基本「簡->繁 / 繁->簡」、前端直接使用、可 `fetch` 自訂字典。
+	 - 入口：`toTraditional(text)`, `toSimplified(text)`, `createConverterFromUrl(url)`
+
+2) 完整模式（官方配置）：`opencc` + config
+	 - 適合：地區詞彙（台/港/陸）、異體字、日文新字體等網站級模式。
+	 - 入口：`new OpenCC('<config>.json').convertPromise(text)`
+
+
+三、網站選項對應的 config（完整模式）
+-----------------------------------
+可直接把「原文/目標/地域」需求映射到下列模式：
+
+- `s2t.json`：簡體 -> 繁體
+- `t2s.json`：繁體 -> 簡體
+- `s2tw.json`：簡體 -> 台灣正體
+- `tw2s.json`：台灣正體 -> 簡體
+- `s2hk.json`：簡體 -> 香港繁體
+- `hk2s.json`：香港繁體 -> 簡體
+- `s2twp.json`：簡體 -> 台灣正體（含台灣常用詞）
+- `tw2sp.json`：台灣正體 -> 簡體（含中國大陸常用詞）
+- `t2tw.json`：繁體（OpenCC 標準）-> 台灣正體
+- `tw2t.json`：台灣正體 -> 繁體（OpenCC 標準）
+- `t2hk.json`：繁體（OpenCC 標準）-> 香港繁體
+- `hk2t.json`：香港繁體 -> 繁體（OpenCC 標準）
+- `t2jp.json`：繁體（舊字體）-> 日文新字體
+- `jp2t.json`：日文新字體 -> 繁體（舊字體）
+
+
+四、單一 index.js 完整範本（ESM）
+--------------------------------
+以下一個檔案可同時支援：
+- 基本轉換（`opencc/web`）
+- `fetch` 自訂字典
+- 網站級完整模式（`opencc` config）
+
+```js
+import OpenCC from 'opencc';
+import {
+	toTraditional,
+	toSimplified,
+	createConverterFromUrl,
+} from 'opencc/web';
+
+const converters = {
+	s2t: new OpenCC('s2t.json'),
+	t2s: new OpenCC('t2s.json'),
+	s2tw: new OpenCC('s2tw.json'),
+	tw2s: new OpenCC('tw2s.json'),
+	s2hk: new OpenCC('s2hk.json'),
+	hk2s: new OpenCC('hk2s.json'),
+	s2twp: new OpenCC('s2twp.json'),
+	tw2sp: new OpenCC('tw2sp.json'),
+	t2tw: new OpenCC('t2tw.json'),
+	tw2t: new OpenCC('tw2t.json'),
+	t2hk: new OpenCC('t2hk.json'),
+	hk2t: new OpenCC('hk2t.json'),
+	t2jp: new OpenCC('t2jp.json'),
+	jp2t: new OpenCC('jp2t.json'),
+};
+
+export async function convertByMode(text, mode = 's2t') {
+	const converter = converters[mode];
+	if (!converter) throw new Error(`Unsupported mode: ${mode}`);
+	return converter.convertPromise(text);
+}
+
+export async function demo() {
+	// 1) 輕量快速（純 JS）
+	console.log(toTraditional('汉字')); // 漢字
+	console.log(toSimplified('漢字')); // 汉字
+
+	// 2) fetch 自訂字典
+	const custom = await createConverterFromUrl(
+		new URL('./opencc-user-dict.json', import.meta.url)
+	);
+	console.log(custom.toTraditional('鼠标')); // 例如：滑鼠
+
+	// 3) 完整模式（網站級配置）
+	console.log(await convertByMode('鼠标和软件', 's2twp'));
+}
+
+await demo();
+```
+
+
+五、自訂字典（給 createConverterFromUrl）
+---------------------------------------
+檔名：`opencc-user-dict.json`（放在 `index.js` 同層）
+
+```json
+{
+	"traditionalToSimplified": {
+		"滑鼠": "鼠标",
+		"程式": "程序"
+	},
+	"simplifiedToTraditional": {
+		"鼠标": "滑鼠",
+		"程序": "程式"
+	}
+}
+```
+
+
+六、如果你的 index.js 是 CommonJS（require）
+------------------------------------------
+可在同一檔內用動態 import：
+
+```js
+(async () => {
+	const OpenCC = (await import('opencc')).default;
+	const { toTraditional, createConverterFromUrl } = await import('opencc/web');
+
+	console.log(toTraditional('汉字')); // 漢字
+
+	const converter = await createConverterFromUrl(
+		new URL('./opencc-user-dict.json', `file://${__dirname}/`)
+	);
+	console.log(converter.toTraditional('鼠标')); // 例如：滑鼠
+
+	const s2t = new OpenCC('s2t.json');
+	console.log(await s2t.convertPromise('汉字')); // 漢字
+})();
+```
+
+
+七、注意事項
+-----------
+1) 建議固定版本（例如 `opencc@1.2.0`），避免上游更新造成差異。
+2) `opencc/web` 適合前端與自用腳本；要完全對齊網站選項，請優先使用 `opencc` + config。
+3) 不建議去呼叫 `https://opencc.byvoid.com/` 當 API，該網站不是正式 API 服務。
+
