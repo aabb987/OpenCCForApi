@@ -76,6 +76,39 @@ async function main() {
 
 See [demo.js](https://github.com/BYVoid/OpenCC/blob/master/node/demo.js) and [ts-demo.ts](https://github.com/BYVoid/OpenCC/blob/master/node/ts-demo.ts).
 
+#### Browser ESM (`import` + `fetch`)
+
+For browser-side usage without an API server, use the `opencc/web` subpath export.
+
+```js
+import { toTraditional, toSimplified, createConverterFromUrl } from 'opencc/web';
+
+console.log(toTraditional('汉字')); // 漢字
+console.log(toSimplified('漢字')); // 汉字
+
+const converter = await createConverterFromUrl('/dict/opencc-user-dict.json');
+console.log(converter.toTraditional('鼠标')); // 滑鼠 (if your dictionary provides this rule)
+```
+
+Dictionary JSON format:
+
+```json
+{
+  "traditionalToSimplified": {
+    "滑鼠": "鼠标"
+  },
+  "simplifiedToTraditional": {
+    "鼠标": "滑鼠"
+  }
+}
+```
+
+You can also import from CDN ESM:
+
+```js
+import { toTraditional } from 'https://cdn.jsdelivr.net/npm/opencc@1.2.0/web/+esm';
+```
+
 ### Python
 
 `pip install opencc` (Windows, Linux, macOS)
@@ -181,6 +214,19 @@ build.cmd
 ```bash
 bazel build //:opencc
 ```
+
+## Release 發佈
+
+### npm (GitHub Actions)
+
+This repository includes an npm release workflow at `.github/workflows/release-npm.yml`.
+
+1. In GitHub repository settings, add a secret named `NPM_TOKEN` (npm publish token).
+2. Bump `package.json` version.
+3. Create and push a tag in format `v<version>` (for example: `v1.2.1`).
+4. The workflow validates tag/version match, runs `npm ci` + `npm test`, then publishes.
+
+You can also trigger the same workflow manually from **Actions → Release npm package**.
 
 ### Test 測試
 

@@ -5,6 +5,16 @@
   "author": "Carbo Kuo <byvoid@byvoid.com>",
   "license": "Apache-2.0",
   "main": "node/opencc.js",
+  "exports": {
+    ".": {
+      "require": "./node/opencc.js",
+      "default": "./node/opencc.js"
+    },
+    "./web": {
+      "import": "./node/web.mjs",
+      "types": "./node/web.d.ts"
+    }
+  },
   "types": "node/opencc.d.ts",
   "scripts": {
     "test": "mocha -R spec node/test.js",
@@ -42,6 +52,7 @@
   },
   "dependencies": {
     "@mapbox/node-pre-gyp": "^1.0.11",
+    "chinese-simple2traditional": "^1.0.6",
     "nan": "^2.22.0"
   }
 }

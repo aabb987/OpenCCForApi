@@ -1,0 +1,10 @@
+{
+  "traditionalToSimplified": {
+    "滑鼠": "鼠标",
+    "程式": "程序"
+  },
+  "simplifiedToTraditional": {
+    "鼠标": "滑鼠",
+    "程序": "程式"
+  }
+}
